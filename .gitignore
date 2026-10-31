@@ -1,3 +1,5 @@
 node_modules/
 tools/node_modules/
 tools/shots/
+tools/.venv/
+tools/video-work/

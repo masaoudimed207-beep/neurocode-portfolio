@@ -34,7 +34,8 @@
   const FR = {
     'nav.about': 'À propos', 'nav.work': 'Projets', 'nav.skills': 'Compétences', 'nav.path': 'Parcours', 'nav.contact': 'Contact', 'nav.cv': 'Télécharger le CV',
     'hero.kicker': 'Étudiant en Génie Informatique · EST Meknès, Maroc',
-    'hero.lead': 'Je transforme de vrais problèmes d’entreprise en outils IA, data et full-stack qui fonctionnent. Testés, mesurés, livrés.',
+    'hero.lead': 'Je transforme de vrais problèmes d’entreprise en outils IA, data et full-stack qui fonctionnent. <em>Testés, mesurés, livrés.</em>',
+    'hero.avail': 'Ouvert à un stage', 'hero.availWhen': 'Avril à mai 2027', 'hero.availWhere': 'IA, data ou full-stack · Maroc, étranger ou à distance',
     'hero.cta1': 'Voir mes projets', 'hero.cta2': 'Me recruter en stage',
     'about.title': 'JE SUIS MOHAMED',
     'about.p1': 'Étudiant en 2e année de DUT Génie Informatique à l’EST Meknès. Je travaille là où l’IA, la data et le logiciel se rencontrent, et je préfère livrer un outil fiable plutôt qu’une démo spectaculaire.',
@@ -95,7 +96,8 @@
     'path.h2': 'DUT Génie Informatique, EST Meknès', 'path.p2': 'Université Moulay Ismail. Structures de données, bases de données, réseaux, web, machine learning.',
     'path.h3': 'Baccalauréat Sciences Physiques, mention Très Bien', 'path.p3': 'Lycée Moulay Idriss Al Akbar, Sefrou.',
     'path.h4': 'Autoformation', 'path.p4': 'Harvard CS50P (Python), parcours data science DataCamp.',
-    'open.eyebrow': 'Travailler ensemble', 'open.title': 'Construisons quelque chose de concret.',
+    'open.ping': 'réponse de mohamed : en général sous 24 h', 'open.title': 'Construisons quelque chose de <span class="u">concret</span>.',
+    'open.copy': 'Copier', 'open.live': 'en ligne',
     'open.p': 'Je cherche un <b>stage d’avril à mai 2027</b> en IA, data ou développement full-stack, au Maroc, à l’étranger ou à distance. Je prends aussi de petites missions freelance.',
     'open.mail': 'M’écrire', 'open.c1': 'Stage', 'open.c1p': 'Avril à mai 2027 · IA, data ou full-stack · sur site, hybride ou à distance',
     'open.c2': 'Freelance', 'open.c2p': 'Applications web, tableaux de bord, pipelines de données et automatisation pour PME', 'open.c3': 'Délai de réponse', 'open.c3p': 'En général sous 24 heures',
@@ -132,6 +134,7 @@
 
   /* ---------- reveal ---------- */
   if ('IntersectionObserver' in window && !reduce) {
+    root.classList.add('rv');
     const ro = new IntersectionObserver((es) => es.forEach(e => {
       if (e.isIntersecting) { e.target.classList.add('in'); ro.unobserve(e.target); }
     }), { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
@@ -139,6 +142,42 @@
     const po = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); po.unobserve(e.target); } }), { threshold: 0.25 });
     $$('.about-photo').forEach(el => po.observe(el));
   } else { root.classList.add('js-off'); $$('.about-photo').forEach(el => el.classList.add('in')); }
+
+  /* ---------- contact : copier l'adresse ---------- */
+  const copyBtn = $('.copy'), copyStatus = $('.copy-status');
+  if (copyBtn) copyBtn.addEventListener('click', async () => {
+    const mail = copyBtn.dataset.email;
+    let ok = false;
+    try { await navigator.clipboard.writeText(mail); ok = true; } catch (e) {
+      const t = document.createElement('textarea'); t.value = mail; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
+      document.body.appendChild(t); t.select(); try { ok = document.execCommand('copy'); } catch (e2) {} t.remove();
+    }
+    const fr = root.lang === 'fr';
+    copyStatus.textContent = ok ? (fr ? 'Adresse copiée' : 'Email copied') : (fr ? 'Copie impossible, sélectionnez l’adresse' : 'Could not copy, select the address');
+    clearTimeout(copyBtn._t); copyBtn._t = setTimeout(() => { copyStatus.textContent = ''; }, 3000);
+  });
+
+  /* ---------- contact : vidéo de fond (ordinateur seulement, chargée à l'approche) ---------- */
+  const vid = $('.open-video');
+  const saveData = navigator.connection && navigator.connection.saveData;
+  if (vid && !reduce && !saveData && matchMedia('(min-width: 768px)').matches && 'IntersectionObserver' in window) {
+    let loaded = false;
+    const start = () => {
+      if (!loaded) {
+        loaded = true;
+        [['webm', 'video/webm'], ['mp4', 'video/mp4']].forEach(([k, type]) => { const s = document.createElement('source'); s.src = vid.dataset[k]; s.type = type; vid.appendChild(s); });
+        vid.addEventListener('playing', () => vid.classList.add('on'), { once: true });
+        vid.load();
+      }
+      const p = vid.play(); if (p && p.catch) p.catch(() => {});
+    };
+    const vo = new IntersectionObserver(es => es.forEach(e => {
+      if (e.isIntersecting) { if (document.readyState === 'complete') start(); else addEventListener('load', start, { once: true }); }
+      else if (loaded) vid.pause();
+    }), { rootMargin: '400px 0px' });
+    vo.observe($('#contact'));
+    document.addEventListener('visibilitychange', () => { if (document.hidden) vid.pause(); else if (loaded && vid.getBoundingClientRect().top < innerHeight) start(); });
+  }
 
   /* ---------- counters ---------- */
   const countObs = new IntersectionObserver(es => es.forEach(e => {

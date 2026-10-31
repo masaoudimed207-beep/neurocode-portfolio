@@ -11,7 +11,7 @@
 <link rel="alternate" hreflang="en" href="https://neurocode-portfolio.vercel.app/">
 <link rel="alternate" hreflang="fr" href="https://neurocode-portfolio.vercel.app/?lang=fr">
 <link rel="alternate" hreflang="x-default" href="https://neurocode-portfolio.vercel.app/">
-<meta name="theme-color" content="#121212">
+<meta name="theme-color" content="#15171C">
 
 <meta property="og:type" content="profile">
 <meta property="og:site_name" content="NeuroCode_Med">
@@ -117,10 +117,17 @@
     </a>
   </div>
   <div class="hero-foot">
-    <p data-i18n="hero.lead">I turn real business problems into AI, data and full-stack tools that work. Tested, measured, shipped.</p>
-    <div class="hero-cta">
-      <a class="btn btn-accent magnetic" href="#work" data-i18n="hero.cta1">See my work</a>
-      <a class="btn btn-ghost magnetic" href="#contact" data-i18n="hero.cta2">Hire me as an intern</a>
+    <div class="hero-foot-grid">
+      <p class="hero-statement reveal" data-i18n="hero.lead">I turn real business problems into AI, data and full-stack tools that work. <em>Tested, measured, shipped.</em></p>
+      <div class="avail reveal">
+        <p class="avail-status"><span class="dot" aria-hidden="true"></span><span data-i18n="hero.avail">Open to an internship</span></p>
+        <p class="avail-when" data-i18n="hero.availWhen">April to May 2027</p>
+        <p class="avail-where" data-i18n="hero.availWhere">AI, data or full-stack · Morocco, abroad or remote</p>
+        <div class="hero-cta">
+          <a class="btn btn-accent magnetic" href="#work" data-i18n="hero.cta1">See my work</a>
+          <a class="btn btn-ghost magnetic" href="#contact" data-i18n="hero.cta2">Hire me as an intern</a>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -383,20 +390,30 @@
 
 <!-- ================= CONTACT ================= -->
 <section class="open" id="contact">
-  <div class="wrap open-grid">
-    <div>
-      <p class="eyebrow mono reveal">05 / <span data-i18n="open.eyebrow">Work with me</span></p>
-      <h2 class="big reveal" data-i18n="open.title">Let’s build something real.</h2>
+  <div class="open-media" aria-hidden="true">
+    <video class="open-video" muted loop playsinline preload="none" poster="assets/video/story-poster.webp" data-mp4="assets/video/story.mp4" data-webm="assets/video/story.webm"></video>
+  </div>
+  <div class="wrap open-inner">
+    <div class="open-copy">
+      <p class="term reveal"><span class="term-cmd"><span class="term-prompt" aria-hidden="true">$</span> <span class="term-type" style="--n:12">ping mohamed</span></span><span class="term-out" data-i18n="open.ping">reply from mohamed: usually within 24 h</span></p>
+      <h2 class="big reveal" data-i18n="open.title">Let’s build something <span class="u">real</span>.</h2>
       <p class="reveal" data-i18n="open.p">I’m looking for an <b>internship from April to May 2027</b> in AI, data or full-stack development, in Morocco, abroad or remote. I also take small freelance projects.</p>
+      <div class="mail reveal">
+        <a class="mail-link" href="mailto:masaoudimed207@gmail.com?subject=Internship%20opportunity">masaoudimed207@gmail.com</a>
+        <button class="copy" type="button" data-email="masaoudimed207@gmail.com"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8"/></svg><span data-i18n="open.copy">Copy</span></button>
+        <span class="copy-status" role="status" aria-live="polite"></span>
+      </div>
       <div class="hero-cta reveal">
         <a class="btn btn-accent magnetic" href="mailto:masaoudimed207@gmail.com?subject=Internship%20opportunity" data-i18n="open.mail">Email me</a>
         <a class="btn btn-ghost-light magnetic" href="assets/CV_Mohamed_Messaoudi_EN.pdf" download data-i18n="nav.cv">Download CV</a>
       </div>
     </div>
     <ul class="open-cards">
-      <li class="reveal"><span class="mono">01</span><h3 data-i18n="open.c1">Internship</h3><p data-i18n="open.c1p">April to May 2027 · AI, data or full-stack · on site, hybrid or remote</p></li>
+      <li class="reveal"><span class="mono">01</span><h3 data-i18n="open.c1">Internship</h3><p data-i18n="open.c1p">April to May 2027 · AI, data or full-stack · on site, hybrid or remote</p>
+        <div class="months" aria-hidden="true"><i>03</i><i class="on">04</i><i class="on">05</i><i>06</i><b>2027</b></div></li>
       <li class="reveal"><span class="mono">02</span><h3 data-i18n="open.c2">Freelance</h3><p data-i18n="open.c2p">Web apps, dashboards, data pipelines and automation for small businesses</p></li>
-      <li class="reveal"><span class="mono">03</span><h3 data-i18n="open.c3">Reply time</h3><p data-i18n="open.c3p">Usually within 24 hours</p></li>
+      <li class="reveal"><span class="mono">03</span><h3 data-i18n="open.c3">Reply time</h3><p data-i18n="open.c3p">Usually within 24 hours</p>
+        <p class="live mono" aria-hidden="true"><span class="dot"></span><span data-i18n="open.live">online</span></p></li>
     </ul>
   </div>
 </section>
