@@ -1,0 +1,20 @@
+{
+  "name": "tools",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "private": "true",
+  "devDependencies": {
+    "@axe-core/playwright": "^4.11.0",
+    "playwright": "^1.56.1",
+    "sharp": "^0.34.4",
+    "simple-icons": "^15.17.0"
+  }
+}
