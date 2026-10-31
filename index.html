@@ -93,16 +93,9 @@
 <main id="main">
 <!-- ================= HERO ================= -->
 <section class="hero" aria-labelledby="hero-title">
-  <p class="hero-kicker mono"><span class="dot"></span> <span data-i18n="hero.kicker">Computer Engineering student · EST Meknès, Morocco</span></p>
+  <p class="hero-kicker mono"><span class="k-cmd" aria-hidden="true"><b>$</b> whoami</span><span class="dot"></span> <span data-i18n="hero.kicker">Computer Engineering student · EST Meknès, Morocco</span></p>
   <h1 id="hero-title" class="sr-only">Mohamed Messaoudi, AI and Data Engineering student</h1>
   <div class="hero-stage">
-    <svg class="hero-shape" viewBox="0 0 400 400" aria-hidden="true">
-      <g class="star">
-        <rect x="170" y="10" width="60" height="380" rx="6"/>
-        <rect x="170" y="10" width="60" height="380" rx="6" transform="rotate(60 200 200)"/>
-        <rect x="170" y="10" width="60" height="380" rx="6" transform="rotate(120 200 200)"/>
-      </g>
-    </svg>
     <div class="hero-words hero-words-back" aria-hidden="true">
       <span class="w1">AI &amp; DATA</span>
       <span class="w2">ENGINEER</span>
@@ -153,6 +146,14 @@
       <img src="assets/img/med-about.webp" width="520" height="1012" alt="Mohamed Messaoudi checking his phone in a field at sunset" loading="lazy">
       <svg class="squiggle s1" viewBox="0 0 60 30" aria-hidden="true"><path d="M2 8c10-8 18 8 28 0s18 8 28 0M2 22c10-8 18 8 28 0s18 8 28 0"/></svg>
       <svg class="squiggle s2" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 2v10M34 8l-7 7M38 22H28"/></svg>
+      <pre class="profile-card mono" aria-hidden="true"><span class="pc-bar"><i></i><i></i><i></i></span><span class="pc-cmd"><b>~ $</b> cat profile.json</span>
+{
+  <span class="k">"name"</span>: <span class="s">"Mohamed Messaoudi"</span>,
+  <span class="k">"role"</span>: <span class="s">"AI &amp; Data Engineer"</span>,
+  <span class="k">"city"</span>: <span class="s">"Meknès, MA"</span>,
+  <span class="k">"open_to"</span>: <span class="s">"internship"</span>,
+  <span class="k">"from"</span>: <span class="s">"2027-04"</span>
+}</pre>
     </figure>
   </div>
 </section>
@@ -540,6 +541,7 @@
       <a href="https://github.com/masaoudimed207-beep" target="_blank" rel="noopener">GitHub</a>
       <a href="https://www.linkedin.com/in/mohamed-massaoudi-b82735322/" target="_blank" rel="noopener" class="li-link">LinkedIn</a>
     </nav>
+    <button type="button" class="term-open mono" data-i18n="footer.term">Terminal (~)</button>
     <a href="#top" class="mono" data-i18n="footer.top">Back to top ↑</a>
   </div>
 </footer>

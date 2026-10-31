@@ -125,7 +125,7 @@
     'open.mail': 'M’écrire', 'open.c1': 'Stage', 'open.c1p': 'Avril à mai 2027 · IA, data ou full-stack · sur site, hybride ou à distance',
     'open.c2': 'Freelance', 'open.c2p': 'Applications web, tableaux de bord, pipelines de données et automatisation pour PME', 'open.c3': 'Délai de réponse', 'open.c3p': 'En général sous 24 heures',
     'footer.top': 'Haut de page ↑',
-    'mq.pin': 'l’outil → où il a servi'
+    'mq.pin': 'l’outil → où il a servi', 'footer.term': 'Terminal (~)'
   };
   const EN = {};
   $$('[data-i18n]').forEach(el => { EN[el.dataset.i18n] = el.innerHTML; });
@@ -138,6 +138,7 @@
     try { localStorage.setItem('lang', l); } catch (e) {}
     document.dispatchEvent(new CustomEvent('nc:lang'));
   };
+  NC.setLang = setLang;
   let lang = new URLSearchParams(location.search).get('lang');
   if (!lang) { try { lang = localStorage.getItem('lang'); } catch (e) {} }
   if (!lang) lang = (navigator.language || 'en').toLowerCase().startsWith('fr') ? 'fr' : 'en';
@@ -238,7 +239,25 @@
   }), { threshold: 0.6 });
   $$('.count').forEach(el => countObs.observe(el));
 
-  /* ---------- cartes résultats : les chiffres comptent au moment où la carte entre ---------- */
+  /* ---------- mini-terminal : touche ~ ou bouton du pied de page, chargé au premier appel ---------- */
+  const openTerm = () => NC.load('js/term.js').then(() => NC.term.toggle());
+  addEventListener('keydown', (e) => {
+    const t = e.target, typing = t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+    if ((e.key === '~' || e.key === '`' || e.key === '²') && !typing && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); openTerm(); }
+  });
+  $$('.term-open').forEach(b => b.addEventListener('click', openTerm));
+
+  /* ---------- blocs 02 à 05 : poussée à l'entrée, recul à la sortie, dans les deux sens ---------- */
+  if (!reduce && 'IntersectionObserver' in window) {
+    const pushObs = new IntersectionObserver(es => es.forEach(e => {
+      const el = e.target, fromTop = e.boundingClientRect.top < 0;
+      if (e.intersectionRatio >= 0.12) el.classList.add('on');
+      else if (e.intersectionRatio < 0.04) { el.classList.remove('on'); el.classList.toggle('from-top', fromTop); }
+    }), { threshold: [0, 0.04, 0.12] });
+    $$('.case-block').forEach(b => { const n = $('.num', b); if (n && +n.textContent >= 2) { b.classList.add('push'); pushObs.observe(b); } });
+  }
+
+  /* ---------- cartes résultats :les chiffres comptent au moment où la carte entre ---------- */
   const rcText = (el, v) => (el.dataset.pre || '') + NC.num(v, +(el.dataset.d || 0)) + (el.dataset.suf || '');
   const rcPaint = () => {
     $$('.rc').forEach(el => { el.textContent = rcText(el, el._v == null ? +el.dataset.to : el._v); });
@@ -319,8 +338,10 @@
   sizeLog(); addEventListener('resize', sizeLog);
   ['load', 'nc:lang'].forEach(ev => (ev === 'load' ? window : document).addEventListener(ev, () => { sizeLog(); drawLog(); }));
 
-  /* ---------- scroll loop: progress bar, ROI, hero star ---------- */
-  const bar = $('.progress'), star = $('.hero-shape'), checker = $('.checker');
+  /* ---------- scroll loop: progress bar, ROI, parcours ---------- */
+  // réseau 3D du hero : chargé une fois la page prête, pour ne rien retarder
+  if (document.readyState === 'complete') NC.load('js/hero-net.js'); else addEventListener('load', () => NC.load('js/hero-net.js'), { once: true });
+  const bar = $('.progress'), checker = $('.checker');
   let ticking = false;
   const onScroll = () => {
     if (ticking) return; ticking = true;
@@ -328,7 +349,6 @@
       const h = root, y = h.scrollTop;
       bar.style.transform = `scaleX(${y / Math.max(1, h.scrollHeight - h.clientHeight)})`;
       nav.classList.toggle('scrolled', y > 10);
-      if (!reduce && y < innerHeight * 1.2) star.style.rotate = `${y * 0.25}deg`;
       if (!reduce && checker) checker.style.transform = `translateY(${(checker.getBoundingClientRect().top - innerHeight / 2) * -0.08}px)`;
       if (window.__roi) window.__roi();
       drawLog();
@@ -349,12 +369,6 @@
       el.addEventListener('mousemove', e => { const r = el.getBoundingClientRect(); el.style.transform = `translate(${(e.clientX - r.left - r.width / 2) * 0.25}px,${(e.clientY - r.top - r.height / 2) * 0.35}px)`; });
       el.addEventListener('mouseleave', () => { el.style.transform = ''; });
     });
-    const hero = $('.hero-stage');
-    hero.addEventListener('mousemove', e => {
-      const r = hero.getBoundingClientRect(), dx = (e.clientX - r.left) / r.width - 0.5, dy = (e.clientY - r.top) / r.height - 0.5;
-      star.style.translate = `${dx * 40}px ${dy * 26}px`;
-    });
-    hero.addEventListener('mouseleave', () => { star.style.translate = ''; });
   }
 
   const yr = $('.year'); if (yr) yr.textContent = new Date().getFullYear();
