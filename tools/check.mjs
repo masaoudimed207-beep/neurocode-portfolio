@@ -93,7 +93,7 @@ for (const vp of VPS) for (const lang of LANGS) {
   // défilement complet, lent, pour déclencher toutes les animations et charger tout
   const H = await page.evaluate(() => document.documentElement.scrollHeight);
   for (let y = 0; y < H; y += Math.round(vp.height * 0.6)) { await page.evaluate(v => window.scrollTo(0, v), y); await page.waitForTimeout(120); }
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(3800); // laisse finir les animations différées (frappe des terminaux)
 
   const hScroll = await page.evaluate(() => {
     const d = document.documentElement; const over = [];

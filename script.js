@@ -6,6 +6,25 @@
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const fine = matchMedia('(hover: hover) and (pointer: fine)').matches;
 
+  /* ---------- outils partagés avec les modules (js/*.js) ---------- */
+  const loaded = {};
+  const NC = window.NC = {
+    reduce, $, $$,
+    lang: () => root.lang === 'fr' ? 'fr' : 'en',
+    load: (src) => loaded[src] || (loaded[src] = new Promise((ok, ko) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = ko; document.body.appendChild(s); })),
+    // texte d'un gabarit traduit (span caché data-i18n), avec remplacement de {cle}
+    t: (key, vars) => { const el = document.querySelector('[data-i18n="' + key + '"]'); let s = el ? el.textContent : key; for (const k in vars || {}) s = s.split('{' + k + '}').join(vars[k]); return s; },
+    num: (v, d) => new Intl.NumberFormat(root.lang === 'fr' ? 'fr-FR' : 'en-US', { minimumFractionDigits: d, maximumFractionDigits: d }).format(v),
+    // fait défiler un nombre de sa valeur affichée vers la cible
+    tween: (el, to, render, dur = 650) => {
+      const from = el._v == null ? 0 : el._v; cancelAnimationFrame(el._raf);
+      if (reduce || dur <= 0 || from === to) { el._v = to; el.textContent = render(to); return; }
+      const t0 = performance.now();
+      const tick = (t) => { const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3); el._v = from + (to - from) * e; el.textContent = render(el._v); if (k < 1) el._raf = requestAnimationFrame(tick); else el._v = to; };
+      el._raf = requestAnimationFrame(tick);
+    }
+  };
+
   /* ---------- intro: counter, then the curtain opens on the hero ---------- */
   const startHero = () => root.classList.add('go');
   if (!root.classList.contains('intro-on')) {
@@ -47,11 +66,14 @@
     'case.role': 'Rôle', 'case.roleV': 'Stagiaire développeur : conception, back end, front end, tests', 'case.client': 'Entreprise', 'case.when': 'Période', 'case.whenV': 'Juillet 2026, poursuivi de ma propre initiative en août', 'case.sup': 'Encadrant',
     'case.h1': 'Le problème',
     'case.p1': 'Un logiciel de transport planifie les tournées et le chargement, mais l’arrêt carburant reste au choix du chauffeur, qui ne voit que le prix au litre. Or un détour se paie en carburant et peut effacer l’économie. Faites défiler l’exemple ci-dessous : ce sont les vrais résultats de mon moteur.',
-    'roi.k': 'Detour ROI · sortie réelle du moteur', 'roi.v': 'Le prix le plus bas n’est pas la meilleure affaire.',
-    'roi.sa': 'A · 2,155 €/L', 'roi.sb': 'B · 2,119 €/L', 'roi.start': 'Départ', 'roi.end': 'Arrivée', 'roi.det': '20 km de détour, aller et retour',
+    'roi.v': 'Le prix le plus bas n’est pas la meilleure affaire.',
+    'roi.v2': 'Ici, le détour est rentable.', 'roi.skip': 'Passer la démo', 'roi.start': 'Départ', 'roi.end': 'Arrivée',
+    'roi.try': 'À vous : bougez un curseur, le moteur recalcule.', 'roi.reset': 'Revenir au cas réel',
+    'roi.c1': 'Carburant restant à l’arrivée', 'roi.c2': 'Détour vers B, par trajet', 'roi.c3': 'Prix chez B', 'roi.c4': 'Consommation du camion',
+    'roi.detT': '{km} km hors route, à l’aller et au retour',
     'roi.a': 'Station A, sur la route', 'roi.b': 'Station B, la moins chère', 'roi.keep': 'Retenue', 'roi.drop': 'Écartée',
     'roi.gross': 'Gain sur le prix', 'roi.cost': 'Coût du détour', 'roi.net': 'Économie nette',
-    'roi.note': 'Camion : réservoir de 800 L à 30 %, donc 560 L à acheter, 30 L/100 km. Le détour compte deux fois, car le camion doit revenir sur sa route.',
+    'roi.note': 'Camion : réservoir de 800 L, 30 L/100 km dans le cas réel. Le détour compte deux fois, car le camion doit revenir sur sa route.',
     'case.h2': 'Comment le moteur décide',
     'case.p2': 'Il cherche d’abord où un arrêt a du sens, à partir du réservoir, du niveau, de la consommation et d’une marge de sécurité. Ensuite il note chaque station de cette zone selon son économie nette.',
     'case.h3': 'Du prototype à la plateforme',
@@ -62,10 +84,10 @@
     'case.fig2': 'Vue chauffeur : l’itinéraire est recalculé via la station choisie (détour réel +1,7 km, 13,17 € économisés).',
     'case.fig3': 'Vue gestionnaire : seules les économies confirmées sont additionnées.',
     'case.fig4': 'La carte, faite avec Leaflet et le calcul d’itinéraire gratuit OSRM.',
-    'arch.h': 'Suivez une recherche dans le système', 'arch.p': 'Faites défiler : chaque étape éclaire la partie du code qui travaille.',
-    'arch.l1': 'Interface · React 19 + TypeScript', 'arch.c1': 'Accueil', 'arch.c2': 'Chauffeur', 'arch.c3': 'Flotte',
+    'arch.h': 'Suivez une recherche dans le système', 'arch.p': 'Chaque étape éclaire la partie du back end qui travaille. Ça défile tout seul, ou choisissez une étape.',
+    'arch.l1': 'Interface · React 19 + TypeScript', 'arch.c2': 'Chauffeur', 'arch.c3': 'Flotte',
     'arch.l2': 'API · FastAPI, jeton JWT, contrôle entreprise', 'arch.l3': 'Services métier · aucun HTTP dedans',
-    'arch.l4': 'Données publiques en direct', 'arch.l5': 'Base de données', 'arch.l5b': 'recherches, choix',
+    'arch.l4': 'Données publiques en direct', 'arch.l5': 'Base de données',
     'arch.s1h': 'Le chauffeur saisit son trajet', 'arch.s1': 'Départ, arrivée, niveau du réservoir et camion. L’écran React l’envoie avec le jeton de connexion.',
     'arch.s2h': 'FastAPI vérifie qui demande', 'arch.s2': 'Il valide les données, relit le rôle en base et garde la requête dans l’entreprise du chauffeur.',
     'arch.s3h': 'Le moteur fait le calcul', 'arch.s3': 'L’optimiseur trouve la zone d’arrêt et note chaque station. Il ne connaît ni les comptes ni le HTTP, il pourra donc rejoindre le logiciel principal de BFRET.',
@@ -96,12 +118,14 @@
     'path.h2': 'DUT Génie Informatique, EST Meknès', 'path.p2': 'Université Moulay Ismail. Structures de données, bases de données, réseaux, web, machine learning.',
     'path.h3': 'Baccalauréat Sciences Physiques, mention Très Bien', 'path.p3': 'Lycée Moulay Idriss Al Akbar, Sefrou.',
     'path.h4': 'Autoformation', 'path.p4': 'Harvard CS50P (Python), parcours data science DataCamp.',
+    'path.hw': 'Avr. 2027', 'path.hh': 'Prochain commit : votre équipe ?', 'path.hp': 'Stage d’avril à mai 2027, en IA, data ou full-stack.', 'path.hl': 'Parlons-en',
     'open.ping': 'réponse de mohamed : en général sous 24 h', 'open.title': 'Construisons quelque chose de <span class="u">concret</span>.',
     'open.copy': 'Copier', 'open.live': 'en ligne',
     'open.p': 'Je cherche un <b>stage d’avril à mai 2027</b> en IA, data ou développement full-stack, au Maroc, à l’étranger ou à distance. Je prends aussi de petites missions freelance.',
     'open.mail': 'M’écrire', 'open.c1': 'Stage', 'open.c1p': 'Avril à mai 2027 · IA, data ou full-stack · sur site, hybride ou à distance',
     'open.c2': 'Freelance', 'open.c2p': 'Applications web, tableaux de bord, pipelines de données et automatisation pour PME', 'open.c3': 'Délai de réponse', 'open.c3p': 'En général sous 24 heures',
-    'footer.top': 'Haut de page ↑'
+    'footer.top': 'Haut de page ↑',
+    'mq.pin': 'l’outil → où il a servi'
   };
   const EN = {};
   $$('[data-i18n]').forEach(el => { EN[el.dataset.i18n] = el.innerHTML; });
@@ -112,7 +136,7 @@
     $$('a[href*="CV_Mohamed_Messaoudi"]').forEach(a => { a.href = l === 'fr' ? 'assets/CV_Mohamed_Messaoudi.pdf' : 'assets/CV_Mohamed_Messaoudi_EN.pdf'; });
     $$('.lang [data-l]').forEach(s => s.classList.toggle('on', s.dataset.l === l));
     try { localStorage.setItem('lang', l); } catch (e) {}
-    if (window.__roi) window.__roi();
+    document.dispatchEvent(new CustomEvent('nc:lang'));
   };
   let lang = new URLSearchParams(location.search).get('lang');
   if (!lang) { try { lang = localStorage.getItem('lang'); } catch (e) {} }
@@ -139,7 +163,11 @@
       if (e.isIntersecting) { e.target.classList.add('in'); ro.unobserve(e.target); }
     }), { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
     $$('.reveal').forEach((el, i) => { el.style.transitionDelay = ((i % 4) * 0.07) + 's'; ro.observe(el); });
-    const po = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); po.unobserve(e.target); } }), { threshold: 0.25 });
+    // photo About : entre quand 25 % est visible, ressort seulement une fois hors écran (pas de clignotement)
+    const po = new IntersectionObserver(es => es.forEach(e => {
+      if (e.intersectionRatio >= 0.25) e.target.classList.add('in');
+      else if (!e.isIntersecting) e.target.classList.remove('in');
+    }), { threshold: [0, 0.25] });
     $$('.about-photo').forEach(el => po.observe(el));
   } else { root.classList.add('js-off'); $$('.about-photo').forEach(el => el.classList.add('in')); }
 
@@ -179,6 +207,28 @@
     document.addEventListener('visibilitychange', () => { if (document.hidden) vid.pause(); else if (loaded && vid.getBoundingClientRect().top < innerHeight) start(); });
   }
 
+  /* ---------- bandeau : suit la vitesse et le sens du scroll ---------- */
+  const mqTrack = $('.marquee-track'), mqSet = $('.mq-set');
+  if (mqTrack && mqSet && !reduce) {
+    let x = 0, dir = 1, boost = 0, lastY = scrollY, running = false, raf = 0, last = 0;
+    addEventListener('scroll', () => {
+      const dy = scrollY - lastY; lastY = scrollY;
+      if (dy) { dir = dy > 0 ? 1 : -1; boost = Math.min(boost + Math.abs(dy) * 0.06, 9); }
+    }, { passive: true });
+    const step = (t) => {
+      const dt = Math.min(48, t - (last || t)) / 16.67; last = t;
+      const w = mqSet.offsetWidth;
+      x -= dir * (0.6 + boost) * dt; boost *= Math.pow(0.92, dt);
+      if (x <= -w) x += w; if (x > 0) x -= w;
+      mqTrack.style.transform = 'translate3d(' + x.toFixed(2) + 'px,0,0)';
+      if (running) raf = requestAnimationFrame(step);
+    };
+    new IntersectionObserver(es => es.forEach(e => {
+      if (e.isIntersecting && !running) { running = true; last = 0; raf = requestAnimationFrame(step); }
+      else if (!e.isIntersecting) { running = false; cancelAnimationFrame(raf); }
+    })).observe($('.marquee'));
+  }
+
   /* ---------- counters ---------- */
   const countObs = new IntersectionObserver(es => es.forEach(e => {
     if (!e.isIntersecting) return;
@@ -188,66 +238,86 @@
   }), { threshold: 0.6 });
   $$('.count').forEach(el => countObs.observe(el));
 
-  /* ---------- Detour ROI: scroll scrubs the story ---------- */
-  const roi = $('#roi');
-  const road = $('#road'), detour = $('#detour'), truck = $('#truck'), sa = $('#sa');
-  const L = road.getTotalLength();
-  const tA = 0.40;
-  const pA = road.getPointAtLength(L * tA);
-  sa.setAttribute('transform', `translate(${pA.x} ${pA.y})`);
-  let tSplit = 0.7, best = 1e9;
-  for (let k = 0; k <= 400; k++) { const q = road.getPointAtLength(L * k / 400); const d = Math.abs(q.x - 575); if (d < best) { best = d; tSplit = k / 400; } }
-  const pS = road.getPointAtLength(L * tSplit);
-  detour.setAttribute('d', `M${pS.x} ${pS.y} C ${pS.x + 30} ${pS.y + 80}, 640 200, 640 265`);
-  const LD = detour.getTotalLength();
-  detour.style.strokeDasharray = `${LD}`; detour.style.strokeDashoffset = `${LD}`;
-  const fmt = (v, sign) => {
-    const n = Math.abs(v).toFixed(2).replace('.', root.lang === 'fr' ? ',' : '.');
-    return (sign && v > 0 ? '+' : v < 0 ? '−' : '') + n + ' €';
+  /* ---------- cartes résultats : les chiffres comptent au moment où la carte entre ---------- */
+  const rcText = (el, v) => (el.dataset.pre || '') + NC.num(v, +(el.dataset.d || 0)) + (el.dataset.suf || '');
+  const rcPaint = () => {
+    $$('.rc').forEach(el => { el.textContent = rcText(el, el._v == null ? +el.dataset.to : el._v); });
+    $$('.receipt .z').forEach(z => { z.textContent = NC.num(0, 2) + ' €'; });
   };
-  const clamp = (x) => Math.max(0, Math.min(1, x));
-  const seg = (p, a, b) => clamp((p - a) / (b - a));
-  const card = (id, k1, k2) => {
-    const c = $(id), dd = $$('dd', c), g = $('.g', c), cst = $('.c', c);
-    const gain = +dd[0].dataset.v, cost = -dd[1].dataset.v, net = +dd[2].dataset.v, MAX = 27.55;
-    dd[0].textContent = fmt(gain * k1, true);
-    dd[1].textContent = fmt(-cost * k2, true);
-    dd[2].textContent = fmt(k1 === 1 && k2 === 1 ? net : gain * k1 - cost * k2, true);
-    const gw = gain / MAX * 100 * k1, cw = cost / MAX * 100 * k2;
-    g.style.width = gw + '%'; cst.style.width = cw + '%'; cst.style.left = (gw - cw) + '%';
-    return net;
-  };
-  const place = (p) => {
-    let pt;
-    if (p < 0.2) pt = road.getPointAtLength(L * tA * seg(p, 0, 0.2));
-    else if (p < 0.42) pt = road.getPointAtLength(L * tA);
-    else if (p < 0.55) pt = road.getPointAtLength(L * (tA + (tSplit - tA) * seg(p, 0.42, 0.55)));
-    else if (p < 0.72) pt = detour.getPointAtLength(LD * seg(p, 0.55, 0.72));
-    else if (p < 0.9) pt = detour.getPointAtLength(LD * (1 - seg(p, 0.72, 0.9)));
-    else pt = road.getPointAtLength(L * (tSplit + (1 - tSplit) * seg(p, 0.9, 1)));
-    truck.setAttribute('transform', `translate(${pt.x} ${pt.y - 2})`);
-  };
-  const updRoi = () => {
-    const r = roi.getBoundingClientRect(), span = r.height - innerHeight;
-    const p = reduce ? 1 : clamp(-r.top / Math.max(1, span));
-    place(p);
-    card('#ca', seg(p, 0.2, 0.3), seg(p, 0.3, 0.4));
-    detour.style.strokeDashoffset = `${LD * (1 - seg(p, 0.55, 0.72))}`;
-    card('#cb', seg(p, 0.55, 0.65), seg(p, 0.65, 0.88));
-    roi.classList.toggle('p2', p > 0.55);
-    roi.classList.toggle('done', p > 0.9);
-  };
-  window.__roi = updRoi;
+  const RC_DELAY = { 106: 350, 61: 1550, 167: 2300, 1.7: 500 };
+  const resObs = new IntersectionObserver(es => es.forEach(e => {
+    if (!e.isIntersecting) return;
+    resObs.unobserve(e.target);
+    $$('.rc', e.target).forEach(el => {
+      const to = +el.dataset.to;
+      el._v = 0; el.textContent = rcText(el, 0);
+      setTimeout(() => NC.tween(el, to, v => rcText(el, v), to === 167 ? 900 : 1100), RC_DELAY[to] || 0);
+    });
+  }), { threshold: 0.45 });
+  if (!reduce) $$('.res').forEach(el => resObs.observe(el));
+  rcPaint();
+  document.addEventListener('nc:lang', rcPaint);
 
-  /* ---------- architecture: which step is on screen ---------- */
+  /* ---------- modules lourds chargés à l'approche de leur section ---------- */
+  const lazy = (sel, src) => {
+    const el = $(sel); if (!el) return;
+    const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { io.disconnect(); NC.load(src); } }, { rootMargin: '900px 0px' });
+    io.observe(el);
+  };
+  lazy('#roi', 'js/roi.js');
+
+  /* ---------- architecture : stepper, lecture auto tant qu'il est visible ---------- */
   const arch = $('.arch');
-  const stepObs = new IntersectionObserver(es => es.forEach(e => {
-    if (e.isIntersecting) {
-      $$('.arch-steps li').forEach(li => li.classList.toggle('on', li === e.target));
-      arch.dataset.step = e.target.dataset.s;
-    }
-  }), { rootMargin: '-45% 0px -45% 0px' });
-  $$('.arch-steps li').forEach(li => stepObs.observe(li));
+  if (arch) {
+    const steps = $$('.arch-steps li', arch), dots = $$('.arch-dots button', arch), N = steps.length, DUR = 4500;
+    let cur = 1, timer = 0, visible = false, held = false;
+    const show = (n) => {
+      cur = ((n - 1 + N) % N) + 1;
+      arch.dataset.step = cur;
+      steps.forEach(li => li.classList.toggle('on', +li.dataset.s === cur));
+      dots.forEach(b => { if (+b.dataset.go === cur) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current'); });
+    };
+    const stop = () => { clearTimeout(timer); arch.classList.remove('playing'); };
+    const run = () => {
+      stop();
+      if (reduce || held || !visible || document.hidden) return;
+      void arch.offsetWidth; // relance la barre de temps
+      arch.classList.add('playing');
+      timer = setTimeout(() => { show(cur + 1); run(); }, DUR);
+    };
+    const pick = (n) => { held = true; show(n); stop(); };
+    $('.an-prev', arch).addEventListener('click', () => pick(cur - 1));
+    $('.an-next', arch).addEventListener('click', () => pick(cur + 1));
+    dots.forEach(b => b.addEventListener('click', () => pick(+b.dataset.go)));
+    arch.style.setProperty('--dur', DUR + 'ms');
+    new IntersectionObserver(es => es.forEach(e => {
+      visible = e.isIntersecting;
+      if (!visible) held = false; // en revenant, la lecture reprend
+      run();
+    }), { threshold: 0.35 }).observe(arch);
+    document.addEventListener('visibilitychange', run);
+    show(1);
+  }
+
+  /* ---------- parcours : la branche git se dessine, chaque commit s'allume au passage ---------- */
+  const log = $('.timeline'), commits = $$('.commit');
+  let logEnd = 0;
+  const sizeLog = () => {
+    if (!log) return;
+    const last = commits[commits.length - 1];
+    logEnd = last.offsetTop + 12;
+    log.style.setProperty('--end', (log.offsetHeight - logEnd) + 'px');
+  };
+  const drawLog = () => {
+    if (!log) return;
+    const r = log.getBoundingClientRect();
+    if (r.top > innerHeight || r.bottom < 0) return;
+    const reach = reduce ? 1e9 : innerHeight * 0.62 - r.top; // jusqu'où la branche est dessinée, en px depuis le haut de la liste
+    log.style.setProperty('--p', Math.max(0, Math.min(1, (reach - 10) / Math.max(1, logEnd - 10))).toFixed(4));
+    commits.forEach(c => c.classList.toggle('lit', c.offsetTop + 10 <= reach));
+  };
+  sizeLog(); addEventListener('resize', sizeLog);
+  ['load', 'nc:lang'].forEach(ev => (ev === 'load' ? window : document).addEventListener(ev, () => { sizeLog(); drawLog(); }));
 
   /* ---------- scroll loop: progress bar, ROI, hero star ---------- */
   const bar = $('.progress'), star = $('.hero-shape'), checker = $('.checker');
@@ -260,7 +330,8 @@
       nav.classList.toggle('scrolled', y > 10);
       if (!reduce && y < innerHeight * 1.2) star.style.rotate = `${y * 0.25}deg`;
       if (!reduce && checker) checker.style.transform = `translateY(${(checker.getBoundingClientRect().top - innerHeight / 2) * -0.08}px)`;
-      updRoi();
+      if (window.__roi) window.__roi();
+      drawLog();
       ticking = false;
     });
   };
