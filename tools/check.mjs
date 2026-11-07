@@ -108,16 +108,35 @@ for (const vp of VPS) for (const lang of LANGS) {
   if (lang2.cv.some(h => h !== wantCv)) bad(`[${tag}] lien CV faux : ${lang2.cv.join(', ')}`);
   const noAlt = await page.evaluate(() => [...document.images].filter(i => !i.hasAttribute('alt')).map(i => i.src));
   if (noAlt.length) bad(`[${tag}] images sans alt : ${noAlt.join(', ')}`);
-  // cibles tactiles de moins de 44 px (écrans tactiles probables), hors liens dans le texte courant
+  // cibles tactiles : la zone réellement touchable (zone invisible comprise) doit faire 44 px,
+  // sans empiéter sur une cible voisine. Hors liens dans le texte courant.
   if (vp.width < 1100) {
-    const small = await page.evaluate(() => [...document.querySelectorAll('a[href], button, input, select, [role="button"]')].filter(el => {
-      const r = el.getBoundingClientRect(), s = getComputedStyle(el);
-      if (!r.width || !r.height || s.visibility === 'hidden' || el.closest('[aria-hidden="true"], .nc-term, .nav-links:not(.open)')) return false;
-      if (el.tagName === 'A' && el.closest('p, li') && s.display === 'inline') return false;
-      return r.width < 44 || r.height < 44;
-    }).map(el => (el.className && typeof el.className === 'string' ? '.' + el.className.split(' ')[0] : el.tagName.toLowerCase()) + ' ' + Math.round(el.getBoundingClientRect().width) + 'x' + Math.round(el.getBoundingClientRect().height)));
-    const uniq = [...new Set(small)];
-    if (uniq.length) report.notes.push(`[${tag}] cibles < 44 px (${uniq.length}) : ${uniq.slice(0, 14).join(', ')}`);
+    const touch = await page.evaluate(async () => {
+      const SEL = 'a[href], button, input, select, [role="button"]', small = [], over = []; const y0 = scrollY;
+      const name = el => (el.className && typeof el.className === 'string' ? '.' + el.className.split(' ')[0] : el.tagName.toLowerCase());
+      for (const el of document.querySelectorAll(SEL)) {
+        let r = el.getBoundingClientRect(); const s = getComputedStyle(el);
+        if (!r.width || !r.height || s.visibility === 'hidden' || el.closest('[aria-hidden="true"], .nc-term, .nav-links:not(.open), .skip')) continue;
+        if (el.tagName === 'A' && el.closest('p, li') && s.display === 'inline') continue;
+        if (r.width >= 44 && r.height >= 44) continue;
+        el.scrollIntoView({ block: 'center' }); await new Promise(res => setTimeout(res, 450)); // fin des entrées animées
+        r = el.getBoundingClientRect();
+        const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+        const owner = (x, y) => { const h = document.elementFromPoint(x, y); return h && h.closest(SEL); };
+        if (owner(cx, cy) !== el) continue; // couverte (barre de nav, etc.) : non mesurable ici
+        const pts = [];
+        if (r.width < 44) pts.push([cx - 21, cy], [cx + 21, cy]);
+        if (r.height < 44) pts.push([cx, cy - 21], [cx, cy + 21]);
+        const hits = pts.map(([x, y]) => owner(x, y));
+        const other = hits.find(o => o && o !== el);
+        if (other) over.push(name(el) + ' / ' + name(other));
+        else if (hits.some(o => o !== el)) small.push(name(el) + ' ' + Math.round(r.width) + 'x' + Math.round(r.height));
+      }
+      window.scrollTo(0, y0); await new Promise(res => setTimeout(res, 1200)); // revient où était la page, animations finies
+      return { small: [...new Set(small)], over: [...new Set(over)] };
+    });
+    if (touch.small.length) report.notes.push(`[${tag}] cibles < 44 px (${touch.small.length}) : ${touch.small.slice(0, 14).join(', ')}`);
+    if (touch.over.length) report.notes.push(`[${tag}] zones de toucher qui se chevauchent : ${touch.over.slice(0, 10).join(', ')}`);
   }
   // texte coupé : bloc de texte qui déborde de sa boîte masquée
   const clipped = await page.evaluate(() => [...document.querySelectorAll('h1, h2, h3, h4, p, li, a, button, span, b')].filter(el => {
