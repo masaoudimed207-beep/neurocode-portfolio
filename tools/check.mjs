@@ -116,7 +116,7 @@ for (const vp of VPS) for (const lang of LANGS) {
       const name = el => (el.className && typeof el.className === 'string' ? '.' + el.className.split(' ')[0] : el.tagName.toLowerCase());
       for (const el of document.querySelectorAll(SEL)) {
         let r = el.getBoundingClientRect(); const s = getComputedStyle(el);
-        if (!r.width || !r.height || s.visibility === 'hidden' || el.closest('[aria-hidden="true"], .nc-term, .nav-links:not(.open), .skip')) continue;
+        if (!r.width || !r.height || s.visibility === 'hidden' || el.closest('[aria-hidden="true"], .nc-term, .nav-links:not(.menu-open), .skip')) continue;
         if (el.tagName === 'A' && el.closest('p, li') && s.display === 'inline') continue;
         if (r.width >= 44 && r.height >= 44) continue;
         el.scrollIntoView({ block: 'center' }); await new Promise(res => setTimeout(res, 450)); // fin des entrées animées
@@ -152,9 +152,14 @@ for (const vp of VPS) for (const lang of LANGS) {
       if (!b || getComputedStyle(b).display === 'none') return 'burger invisible';
       window.scrollTo(0, 0); b.click(); await new Promise(r => setTimeout(r, 450));
       const links = [...l.querySelectorAll('a')], vis = links.filter(a => { const r = a.getBoundingClientRect(); return r.width && r.top >= 0 && r.bottom <= innerHeight; });
-      const ok = l.classList.contains('open') && vis.length === links.length;
+      const ok = l.classList.contains('menu-open') && vis.length === links.length;
+      // contraste des liens du menu ouvert (axe ne le voit pas : il passe menu fermé)
+      const lum = c => { const [r, g, b] = c.match(/[\d.]+/g).slice(0, 3).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; };
+      const bg = lum(getComputedStyle(l).backgroundColor);
+      const low = links.filter(a => { const f = lum(getComputedStyle(a).color); return (Math.max(f, bg) + .05) / (Math.min(f, bg) + .05) < 4.5; }).map(a => a.textContent.trim());
       links[0] && links[0].click(); await new Promise(r => setTimeout(r, 300));
-      return ok && !l.classList.contains('open') ? '' : 'menu mobile incomplet';
+      if (low.length) return 'menu mobile, contraste trop faible : ' + low.join(', ');
+      return ok && !l.classList.contains('menu-open') ? '' : 'menu mobile incomplet';
     });
     if (menu) bad(`[${tag}] ${menu}`);
   }

@@ -159,9 +159,9 @@
   const nav = $('.nav'), links = $('.nav-links'), burger = $('.burger');
   burger.addEventListener('click', () => {
     const open = burger.getAttribute('aria-expanded') === 'true';
-    burger.setAttribute('aria-expanded', String(!open)); links.classList.toggle('open', !open);
+    burger.setAttribute('aria-expanded', String(!open)); links.classList.toggle('menu-open', !open);
   });
-  $$('.nav-links a').forEach(a => a.addEventListener('click', () => { burger.setAttribute('aria-expanded', 'false'); links.classList.remove('open'); }));
+  $$('.nav-links a').forEach(a => a.addEventListener('click', () => { burger.setAttribute('aria-expanded', 'false'); links.classList.remove('menu-open'); }));
   const sectionObs = new IntersectionObserver(es => es.forEach(e => {
     if (e.isIntersecting) $$('.nav-links a').forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + e.target.id));
   }), { rootMargin: '-45% 0px -50% 0px' });
@@ -193,7 +193,8 @@
     }
     const fr = root.lang === 'fr';
     copyStatus.textContent = ok ? (fr ? 'Adresse copiée' : 'Email copied') : (fr ? 'Copie impossible, sélectionnez l’adresse' : 'Could not copy, select the address');
-    clearTimeout(copyBtn._t); copyBtn._t = setTimeout(() => { copyStatus.textContent = ''; }, 3000);
+    copyBtn.classList.toggle('ok', ok); // le bouton confirme aussi la copie
+    clearTimeout(copyBtn._t); copyBtn._t = setTimeout(() => { copyStatus.textContent = ''; copyBtn.classList.remove('ok'); }, 3000);
   });
 
   /* ---------- contact : vidéo de fond (ordinateur seulement, chargée à l'approche) ---------- */
