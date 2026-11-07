@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Séquence : des données brutes à une décision</title>
+<!-- Page de génération seulement (jamais déployée). Rendue image par image par tools/sequence/render.mjs. -->
+<style>html,body{margin:0;background:#15171C;overflow:hidden}canvas{display:block}</style>
+<script type="importmap">{ "imports": { "three": "/node_modules/three/build/three.module.js" } }</script>
+</head>
+<body>
+<script type="module">
+import * as THREE from 'three';
+
+const W = 1920, H = 1080;                 // rendu en grand, réduit ensuite par sharp (images plus nettes)
+const INK = 0x15171C, COBALT = 0x8496FF, TERRA = 0xC26A4A;
+const N = 150;                            // points : peu nombreux pour garder des images légères
+
+// hasard fixe : deux rendus donnent exactement les mêmes images
+let seed = 20270401;
+const rnd = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+const smooth = (a, b, t) => { const x = Math.min(1, Math.max(0, (t - a) / (b - a))); return x * x * (3 - 2 * x); };
+const lerp = (a, b, t) => a + (b - a) * t;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1); renderer.setSize(W, H);
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(INK);
+scene.fog = new THREE.Fog(INK, 9, 24);    // le lointain se fond dans le fond : aucun bord visible
+const camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 60);
+
+// 1. nuage : épars et bruité
+const cloud = [], pipe = [], route = [], stagger = [];
+for (let i = 0; i < N; i++) {
+  cloud.push([lerp(-10, 10, rnd()), lerp(-5.5, 5.5, rnd()), lerp(-16, 3, rnd())]);
+  stagger.push(rnd() * 0.06);
+}
+// 2. pipeline : trois couches (données, API, interface), chacune une grille nette de 5 x 10 points
+const LAYER_X = [-3.6, 0, 3.6], PER = N / 3;
+for (let i = 0; i < N; i++) {
+  const l = Math.floor(i / PER), k = i % PER, col = k % 5, row = Math.floor(k / 5);
+  pipe.push([LAYER_X[l] + (col - 2) * 0.32, (row - 4.5) * 0.46, -3 + (rnd() - 0.5) * 0.1]);
+}
+// 3. décision : une seule route, en courbe douce, qui finit sur un point
+const curve = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(-4.8, -1.3, -2.8), new THREE.Vector3(-2.3, 0.5, -3.2), new THREE.Vector3(0.3, -0.6, -3.4),
+  new THREE.Vector3(2.6, 0.55, -3.2), new THREE.Vector3(4.4, 0.1, -3)
+]);
+const order = [...Array(N).keys()].sort((a, b) => pipe[a][0] - pipe[b][0] || pipe[b][1] - pipe[a][1]); // la route suit le pipeline, de gauche à droite
+order.forEach((idx, j) => { const p = curve.getPoint(j / (N - 1)); route[idx] = [p.x, p.y, p.z]; });
+const END = curve.getPoint(1);
+
+// points ronds aux bords nets (alphaTest) : moins de dégradés, donc des WebP plus légers
+const dot = document.createElement('canvas'); dot.width = dot.height = 64;
+const dc = dot.getContext('2d'); dc.fillStyle = '#fff'; dc.beginPath(); dc.arc(32, 32, 30, 0, Math.PI * 2); dc.fill();
+const pos = new Float32Array(N * 3);
+const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+const mat = new THREE.PointsMaterial({ color: COBALT, size: 0.16, map: new THREE.CanvasTexture(dot), alphaTest: 0.5, transparent: false, fog: true });
+scene.add(new THREE.Points(geo, mat));
+
+// liens entre couches voisines, visibles pendant la phase pipeline
+const PAIRS = [];
+for (let l = 0; l < 2; l++) for (let j = 0; j < 12; j++) PAIRS.push([l * PER + Math.floor(rnd() * PER), (l + 1) * PER + Math.floor(rnd() * PER)]);
+const lpos = new Float32Array(PAIRS.length * 6);
+const lgeo = new THREE.BufferGeometry(); lgeo.setAttribute('position', new THREE.BufferAttribute(lpos, 3));
+const lmat = new THREE.LineBasicMaterial({ color: COBALT, transparent: true, opacity: 0, fog: true });
+scene.add(new THREE.LineSegments(lgeo, lmat));
+
+// la route, tracée progressivement
+const RP = curve.getPoints(160), rgeo = new THREE.BufferGeometry().setFromPoints(RP);
+const rmat = new THREE.LineBasicMaterial({ color: COBALT, transparent: true, opacity: 0.9, fog: true });
+const rline = new THREE.Line(rgeo, rmat); scene.add(rline);
+
+// la décision : un point terracotta et son anneau
+const endDot = new THREE.Mesh(new THREE.CircleGeometry(0.2, 40), new THREE.MeshBasicMaterial({ color: TERRA, fog: false }));
+const endRing = new THREE.Mesh(new THREE.RingGeometry(0.34, 0.39, 48), new THREE.MeshBasicMaterial({ color: TERRA, transparent: true, fog: false }));
+endDot.position.copy(END); endRing.position.copy(END); scene.add(endDot, endRing);
+
+// une image : t de 0 à 1 ; la caméra avance d'un pas fixe à chaque image
+window.renderFrame = (i, n) => {
+  const t = i / (n - 1);
+  camera.position.set(0, 0.3, lerp(13, 7.5, t));
+  camera.lookAt(0, 0, -3);
+  for (let k = 0; k < N; k++) {
+    const a = smooth(0.08 + stagger[k], 0.34 + stagger[k], t), b = smooth(0.6 + stagger[k], 0.84 + stagger[k], t); // pipeline net de 0,40 à 0,60
+    for (let c = 0; c < 3; c++) pos[k * 3 + c] = lerp(lerp(cloud[k][c], pipe[k][c], a), route[k][c], b);
+  }
+  geo.attributes.position.needsUpdate = true;
+  PAIRS.forEach(([p, q], j) => { for (let c = 0; c < 3; c++) { lpos[j * 6 + c] = pos[p * 3 + c]; lpos[j * 6 + 3 + c] = pos[q * 3 + c]; } });
+  lgeo.attributes.position.needsUpdate = true;
+  lmat.opacity = 0.45 * smooth(0.3, 0.42, t) * (1 - smooth(0.58, 0.66, t));
+  rgeo.setDrawRange(0, Math.floor(RP.length * smooth(0.66, 0.92, t)));
+  const e = smooth(0.86, 1, t);
+  endDot.scale.setScalar(Math.max(0.001, e)); endRing.scale.setScalar(Math.max(0.001, e));
+  endRing.material.opacity = e;
+  endDot.lookAt(camera.position); endRing.lookAt(camera.position);
+  renderer.render(scene, camera);
+};
+window.ready = true;
+</script>
+</body>
+</html>
