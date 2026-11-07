@@ -772,3 +772,26 @@ picture{display:contents}
   .nav-links a:hover,.nav-links a:active{background:var(--accent-tint)}
   .nav-links a.active{color:var(--accent-strong)}
 }
+
+/* ============ SÉQUENCE AU SCROLL ============ */
+.seq{position:relative;height:240vh;background:var(--ink);color:var(--on-dark)}
+.seq-stick{position:sticky;top:0;height:100vh;overflow:hidden}
+.seq-canvas{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .8s var(--ease-out)}
+.seq.ready .seq-canvas{opacity:1}
+.seq-still{display:none}
+.seq-load{position:absolute;left:50%;top:50%;margin:0;transform:translate(-50%,-50%);color:var(--on-dark-3);transition:opacity .4s}
+.seq-load b{font-weight:500;font-variant-numeric:tabular-nums}
+.seq.ready .seq-load{opacity:0}
+.seq-copy{position:absolute;left:0;right:0;bottom:clamp(32px,9vh,90px)}
+.seq-steps{list-style:none;margin:0;padding:0;position:relative;min-height:2.4em;max-width:17em;font:800 clamp(24px,2.8vw,38px)/1.1 var(--display);letter-spacing:-.02em}
+.seq-steps li{position:absolute;left:0;top:0;opacity:0;transform:translateY(14px);transition:opacity .5s var(--ease-out),transform .5s var(--ease-out)}
+.seq-steps li.on{opacity:1;transform:none}
+@media (max-width:640px){.seq{height:200vh}.seq-steps{min-height:3.4em}}
+/* image fixe : mouvement réduit, économie de données, sans JS ou erreur de chargement */
+.seq.still,html:not(.js) .seq{height:auto}
+.seq.still .seq-stick,html:not(.js) .seq-stick{position:relative;height:auto;padding:72px 0}
+.seq.still .seq-canvas,.seq.still .seq-load,html:not(.js) .seq-canvas,html:not(.js) .seq-load{display:none}
+.seq.still .seq-still,html:not(.js) .seq-still{display:block;width:min(960px,calc(100% - 32px));height:auto;margin:0 auto 24px}
+.seq.still .seq-copy,html:not(.js) .seq-copy{position:static}
+.seq.still .seq-steps,html:not(.js) .seq-steps{min-height:0}
+.seq.still .seq-steps li,html:not(.js) .seq-steps li{position:static;opacity:1;transform:none;margin-bottom:.35em}

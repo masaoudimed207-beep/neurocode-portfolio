@@ -64,7 +64,7 @@ const browser = await chromium.launch({ channel: 'msedge' });
 // 1440 et 390 : contrôle complet et poids ; 360, 768 et 1024 : écrans (débordement, menu, cibles tactiles, contraste)
 const VPS = [{ name: 'desktop', width: 1440, height: 900 }, { name: 'mobile', width: 390, height: 844 }, { name: 'w360', width: 360, height: 740 }, { name: 'tablet', width: 768, height: 1024 }, { name: 'w1024', width: 1024, height: 768 }].filter(v => !vpOnly || v.name === vpOnly);
 const LANGS = ['en', 'fr'].filter(l => !only || l === only);
-const SECTIONS = [['hero', '.hero'], ['herofoot', '.hero-foot'], ['about', '#about'], ['marquee', '.marquee-clip'], ['work', '#work'], ['case', '.case-meta'], ['roi', '#roi'], ['case2', '.case-block:nth-of-type(3)'], ['arch', '.arch-block'], ['results', '.results'], ['more', '.more'], ['skills', '#skills'], ['path', '#path'], ['contact', '#contact'], ['footer', '.footer']];
+const SECTIONS = [['hero', '.hero'], ['herofoot', '.hero-foot'], ['sequence', '#sequence'], ['about', '#about'], ['marquee', '.marquee-clip'], ['work', '#work'], ['case', '.case-meta'], ['roi', '#roi'], ['case2', '.case-block:nth-of-type(3)'], ['arch', '.arch-block'], ['results', '.results'], ['more', '.more'], ['skills', '#skills'], ['path', '#path'], ['contact', '#contact'], ['footer', '.footer']];
 if (SHOTS) fs.mkdirSync(OUT, { recursive: true });
 
 for (const vp of VPS) for (const lang of LANGS) {
