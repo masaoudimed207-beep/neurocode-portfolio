@@ -3,3 +3,5 @@ tools/node_modules/
 tools/shots/
 tools/.venv/
 tools/video-work/
+.claude/settings.local.json
+.impeccable/
