@@ -126,8 +126,6 @@
     'open.c2': 'Freelance', 'open.c2p': 'Applications web, tableaux de bord, pipelines de données et automatisation pour PME', 'open.c3': 'Délai de réponse', 'open.c3p': 'En général sous 24 heures',
     'footer.top': 'Haut de page ↑',
     'mq.pin': 'l’outil → où il a servi',
-    'seq.title': 'Des données brutes à une décision', 'seq.loading': 'Chargement',
-    'seq.s1': 'Les données arrivent brutes, éparses, bruitées.', 'seq.s2': 'Je les structure : données, API, interface.', 'seq.s3': 'Jusqu’à une décision claire.',
     'alt.med-cutout': 'Portrait de Mohamed Messaoudi',
     'alt.med-about': 'Mohamed Messaoudi regarde son téléphone dans un champ au coucher du soleil',
     'alt.fuel-hero': 'BFRET Fuel Optimizer sur ordinateur et mobile, stations classées par économie nette',
@@ -297,9 +295,6 @@
     io.observe(el);
   };
   lazy('#roi', 'js/roi.js');
-  // séquence au scroll : image fixe tout de suite si mouvement réduit ou économie de données
-  const seq = $('#sequence');
-  if (seq && (reduce || (navigator.connection && navigator.connection.saveData))) seq.classList.add('still'); else lazy('#sequence', 'js/sequence.js');
 
   /* ---------- architecture : stepper, lecture auto tant qu'il est visible ---------- */
   const arch = $('.arch');
