@@ -2,3 +2,9 @@ tools/
 photos-brutes/
 README.md
 .gitignore
+CLAUDE.md
+PRODUCT.md
+DESIGN.md
+skills-lock.json
+.claude/
+.impeccable/

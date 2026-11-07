@@ -5,3 +5,4 @@ tools/.venv/
 tools/video-work/
 .claude/settings.local.json
 .impeccable/
+photos-brutes/
