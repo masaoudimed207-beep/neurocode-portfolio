@@ -1,4 +1,4 @@
-// Vérification du portfolio : node tools/check.mjs [--shots] [--only=en|fr] [--vp=desktop|mobile]
+// Vérification du portfolio : node tools/check.mjs [--shots] [--only=en|fr] [--vp=desktop|mobile|w360|tablet|w1024]
 // Lance un petit serveur local, ouvre la page avec Playwright (Edge installé), contrôle et mesure.
 import http from 'node:http';
 import fs from 'node:fs';
@@ -48,9 +48,9 @@ for (const f of srcFiles) {
 }
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const js = fs.readFileSync(path.join(ROOT, 'script.js'), 'utf8');
-const keys = [...new Set([...html.matchAll(/data-i18n="([^"]+)"/g)].map(m => m[1]))];
+const keys = [...new Set([...html.matchAll(/data-i18n(?:-alt)?="([^"]+)"/g)].map(m => m[1]))];
 const frBlock = js.slice(js.indexOf('const FR = {'), js.indexOf('};', js.indexOf('const FR = {')));
-const frKeys = new Set([...frBlock.matchAll(/'([a-zA-Z0-9_.]+)'\s*:/g)].map(m => m[1]));
+const frKeys = new Set([...frBlock.matchAll(/'([a-zA-Z0-9_.-]+)'\s*:/g)].map(m => m[1]));
 const missingFr = keys.filter(k => !frKeys.has(k));
 const unusedFr = [...frKeys].filter(k => !keys.includes(k));
 if (missingFr.length) bad(`clés sans FR : ${missingFr.join(', ')}`);
@@ -61,7 +61,8 @@ const ogPath = path.join(ROOT, 'assets/img/og.png'); if (!fs.existsSync(ogPath))
 
 // --- navigateur ---
 const browser = await chromium.launch({ channel: 'msedge' });
-const VPS = [{ name: 'desktop', width: 1440, height: 900 }, { name: 'mobile', width: 390, height: 844 }].filter(v => !vpOnly || v.name === vpOnly);
+// 1440 et 390 : contrôle complet et poids ; 360, 768 et 1024 : écrans (débordement, menu, cibles tactiles, contraste)
+const VPS = [{ name: 'desktop', width: 1440, height: 900 }, { name: 'mobile', width: 390, height: 844 }, { name: 'w360', width: 360, height: 740 }, { name: 'tablet', width: 768, height: 1024 }, { name: 'w1024', width: 1024, height: 768 }].filter(v => !vpOnly || v.name === vpOnly);
 const LANGS = ['en', 'fr'].filter(l => !only || l === only);
 const SECTIONS = [['hero', '.hero'], ['herofoot', '.hero-foot'], ['about', '#about'], ['marquee', '.marquee-clip'], ['work', '#work'], ['case', '.case-meta'], ['roi', '#roi'], ['case2', '.case-block:nth-of-type(3)'], ['arch', '.arch-block'], ['results', '.results'], ['more', '.more'], ['skills', '#skills'], ['path', '#path'], ['contact', '#contact'], ['footer', '.footer']];
 if (SHOTS) fs.mkdirSync(OUT, { recursive: true });
@@ -107,6 +108,37 @@ for (const vp of VPS) for (const lang of LANGS) {
   if (lang2.cv.some(h => h !== wantCv)) bad(`[${tag}] lien CV faux : ${lang2.cv.join(', ')}`);
   const noAlt = await page.evaluate(() => [...document.images].filter(i => !i.hasAttribute('alt')).map(i => i.src));
   if (noAlt.length) bad(`[${tag}] images sans alt : ${noAlt.join(', ')}`);
+  // cibles tactiles de moins de 44 px (écrans tactiles probables), hors liens dans le texte courant
+  if (vp.width < 1100) {
+    const small = await page.evaluate(() => [...document.querySelectorAll('a[href], button, input, select, [role="button"]')].filter(el => {
+      const r = el.getBoundingClientRect(), s = getComputedStyle(el);
+      if (!r.width || !r.height || s.visibility === 'hidden' || el.closest('[aria-hidden="true"], .nc-term, .nav-links:not(.open)')) return false;
+      if (el.tagName === 'A' && el.closest('p, li') && s.display === 'inline') return false;
+      return r.width < 44 || r.height < 44;
+    }).map(el => (el.className && typeof el.className === 'string' ? '.' + el.className.split(' ')[0] : el.tagName.toLowerCase()) + ' ' + Math.round(el.getBoundingClientRect().width) + 'x' + Math.round(el.getBoundingClientRect().height)));
+    const uniq = [...new Set(small)];
+    if (uniq.length) report.notes.push(`[${tag}] cibles < 44 px (${uniq.length}) : ${uniq.slice(0, 14).join(', ')}`);
+  }
+  // texte coupé : bloc de texte qui déborde de sa boîte masquée
+  const clipped = await page.evaluate(() => [...document.querySelectorAll('h1, h2, h3, h4, p, li, a, button, span, b')].filter(el => {
+    const s = getComputedStyle(el);
+    if (!/(hidden|clip)/.test(s.overflowX) || !el.textContent.trim() || el.closest('[aria-hidden="true"], .marquee-clip, .term, .nc-term, .sr-only')) return false;
+    return el.scrollWidth > el.clientWidth + 2;
+  }).map(el => el.tagName.toLowerCase() + '.' + [...el.classList].join('.')).slice(0, 6));
+  if (clipped.length) bad(`[${tag}] texte coupé : ${clipped.join(', ')}`);
+  // menu mobile : il s'ouvre, ses liens sont visibles, il se referme après un clic
+  if (vp.width <= 980) {
+    const menu = await page.evaluate(async () => {
+      const b = document.querySelector('.burger'), l = document.querySelector('.nav-links');
+      if (!b || getComputedStyle(b).display === 'none') return 'burger invisible';
+      window.scrollTo(0, 0); b.click(); await new Promise(r => setTimeout(r, 450));
+      const links = [...l.querySelectorAll('a')], vis = links.filter(a => { const r = a.getBoundingClientRect(); return r.width && r.top >= 0 && r.bottom <= innerHeight; });
+      const ok = l.classList.contains('open') && vis.length === links.length;
+      links[0] && links[0].click(); await new Promise(r => setTimeout(r, 300));
+      return ok && !l.classList.contains('open') ? '' : 'menu mobile incomplet';
+    });
+    if (menu) bad(`[${tag}] ${menu}`);
+  }
   const dashes = await page.evaluate(() => (document.body.innerText.match(/[–—]/g) || []).length);
   if (dashes) bad(`[${tag}] ${dashes} tiret(s) long(s) dans le texte rendu`);
 
