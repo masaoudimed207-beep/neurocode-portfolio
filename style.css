@@ -772,3 +772,6 @@ picture{display:contents}
   .nav-links a:hover,.nav-links a:active{background:var(--accent-tint)}
   .nav-links a.active{color:var(--accent-strong)}
 }
+/* performance (ordinateur) : la nav floutée sur sa propre couche, pour ne pas repeindre le flou à chaque image.
+   Pas sous 980 px : le menu mobile en position fixe serait alors placé par rapport à la nav. */
+@media (min-width:981px){.nav{will-change:transform}}

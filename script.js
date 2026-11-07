@@ -6,6 +6,20 @@
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const fine = matchMedia('(hover: hover) and (pointer: fine)').matches;
 
+  /* ---------- une seule image partagée : toutes les lectures de géométrie, puis toutes les écritures ----------
+     frame(job) : job(t) lit la géométrie et renvoie une fonction qui écrit les styles. Évite les recalculs
+     forcés quand plusieurs effets (bandeau, curseur, scroll) tournent dans la même image. */
+  const jobs = new Set();
+  let frameRaf = 0;
+  const frame = (job) => { jobs.add(job); if (!frameRaf) frameRaf = requestAnimationFrame(runFrame); };
+  function runFrame(t) {
+    frameRaf = 0;
+    const list = [...jobs]; jobs.clear();
+    const out = list.map(job => job(t));                    // 1. lectures
+    out.forEach(o => o && o.mid && o.mid());                 // 2. modules qui lisent puis écrivent eux-mêmes (ROI)
+    out.forEach(o => o && (typeof o === 'function' ? o() : o.write && o.write())); // 3. écritures
+  }
+
   /* ---------- outils partagés avec les modules (js/*.js) ---------- */
   const loaded = {};
   const NC = window.NC = {
@@ -222,22 +236,25 @@
   /* ---------- bandeau : suit la vitesse et le sens du scroll ---------- */
   const mqTrack = $('.marquee-track'), mqSet = $('.mq-set');
   if (mqTrack && mqSet && !reduce) {
-    let x = 0, dir = 1, boost = 0, lastY = scrollY, running = false, raf = 0, last = 0;
-    addEventListener('scroll', () => {
-      const dy = scrollY - lastY; lastY = scrollY;
+    let x = 0, dir = 1, boost = 0, lastY = scrollY, running = false, last = 0, pending = false;
+    // le sens et la vitesse du scroll sont lus dans la phase de lecture de l'image, pas dans l'écouteur
+    const track = () => {
+      if (!pending) return; pending = false;
+      const sy = scrollY, dy = sy - lastY; lastY = sy;
       if (dy) { dir = dy > 0 ? 1 : -1; boost = Math.min(boost + Math.abs(dy) * 0.06, 9); }
-    }, { passive: true });
+    };
+    addEventListener('scroll', () => { if (!pending) { pending = true; frame(track); } }, { passive: true });
     const step = (t) => {
+      track();
       const dt = Math.min(48, t - (last || t)) / 16.67; last = t;
       const w = mqSet.offsetWidth;
       x -= dir * (0.6 + boost) * dt; boost *= Math.pow(0.92, dt);
       if (x <= -w) x += w; if (x > 0) x -= w;
-      mqTrack.style.transform = 'translate3d(' + x.toFixed(2) + 'px,0,0)';
-      if (running) raf = requestAnimationFrame(step);
+      return () => { mqTrack.style.transform = 'translate3d(' + x.toFixed(2) + 'px,0,0)'; if (running) frame(step); };
     };
     new IntersectionObserver(es => es.forEach(e => {
-      if (e.isIntersecting && !running) { running = true; last = 0; raf = requestAnimationFrame(step); }
-      else if (!e.isIntersecting) { running = false; cancelAnimationFrame(raf); }
+      if (e.isIntersecting && !running) { running = true; last = 0; frame(step); }
+      else if (!e.isIntersecting) { running = false; jobs.delete(step); }
     })).observe($('.marquee'));
   }
 
@@ -331,54 +348,84 @@
 
   /* ---------- parcours : la branche git se dessine, chaque commit s'allume au passage ---------- */
   const log = $('.timeline'), commits = $$('.commit');
-  let logEnd = 0;
+  let logEnd = 0, commitTops = [];
+  // positions des commits mises en cache : relues seulement au chargement, au resize et au changement de langue
   const sizeLog = () => {
     if (!log) return;
-    const last = commits[commits.length - 1];
-    logEnd = last.offsetTop + 12;
+    commitTops = commits.map(c => c.offsetTop);
+    logEnd = commitTops[commitTops.length - 1] + 12;
     log.style.setProperty('--end', (log.offsetHeight - logEnd) + 'px');
   };
-  const drawLog = () => {
+  // lecture (géométrie) et écriture (styles) séparées, pour que onScroll lise tout avant d'écrire
+  const readLog = () => log && log.getBoundingClientRect().top;
+  const writeLog = (top) => {
     if (!log) return;
-    const r = log.getBoundingClientRect();
-    if (r.top > innerHeight || r.bottom < 0) return;
-    const reach = reduce ? 1e9 : innerHeight * 0.62 - r.top; // jusqu'où la branche est dessinée, en px depuis le haut de la liste
+    const reach = reduce ? 1e9 : innerHeight * 0.62 - top; // jusqu'où la branche est dessinée, en px depuis le haut de la liste
     log.style.setProperty('--p', Math.max(0, Math.min(1, (reach - 10) / Math.max(1, logEnd - 10))).toFixed(4));
-    commits.forEach(c => c.classList.toggle('lit', c.offsetTop + 10 <= reach));
+    commits.forEach((c, i) => c.classList.toggle('lit', commitTops[i] + 10 <= reach));
   };
+  const drawLog = () => { if (log) writeLog(readLog()); };
   sizeLog(); addEventListener('resize', sizeLog);
   ['load', 'nc:lang'].forEach(ev => (ev === 'load' ? window : document).addEventListener(ev, () => { sizeLog(); drawLog(); }));
+
+  // drawLog et le ROI ne tournent que lorsque leur section est visible (marge pour être à jour avant d'entrer)
+  const seen = { log: false, roi: false };
+  const watch = (el, key) => el && new IntersectionObserver(es => { seen[key] = es.some(e => e.isIntersecting); if (seen[key]) onScroll(); }, { rootMargin: '150px 0px' }).observe(el);
 
   /* ---------- scroll loop: progress bar, ROI, parcours ---------- */
   // réseau 3D du hero : chargé une fois la page prête, pour ne rien retarder
   if (document.readyState === 'complete') NC.load('js/hero-net.js'); else addEventListener('load', () => NC.load('js/hero-net.js'), { once: true });
   const bar = $('.progress'), checker = $('.checker');
-  let ticking = false;
-  const onScroll = () => {
-    if (ticking) return; ticking = true;
-    requestAnimationFrame(() => {
-      const h = root, y = h.scrollTop;
-      bar.style.transform = `scaleX(${y / Math.max(1, h.scrollHeight - h.clientHeight)})`;
-      nav.classList.toggle('scrolled', y > 10);
-      if (!reduce && checker) checker.style.transform = `translateY(${(checker.getBoundingClientRect().top - innerHeight / 2) * -0.08}px)`;
-      if (window.__roi) window.__roi();
-      drawLog();
-      ticking = false;
-    });
+  const scrollJob = () => {
+    // 1. toutes les lectures de géométrie
+    const h = root, y = h.scrollTop, span = Math.max(1, h.scrollHeight - h.clientHeight);
+    const chkTop = !reduce && checker ? checker.getBoundingClientRect().top : 0;
+    const logTop = seen.log ? readLog() : null;
+    return {
+      // 2. le ROI lit puis écrit lui-même (js/roi.js, non modifié) : entre les lectures et les écritures
+      mid: () => { if (seen.roi && window.__roi) window.__roi(); },
+      // 3. toutes les écritures
+      write: () => {
+        bar.style.transform = `scaleX(${y / span})`;
+        nav.classList.toggle('scrolled', y > 10);
+        if (!reduce && checker) checker.style.transform = `translateY(${(chkTop - innerHeight / 2) * -0.08}px)`;
+        if (logTop !== null) writeLog(logTop);
+      }
+    };
   };
+  function onScroll() { frame(scrollJob); }
+  watch(log, 'log'); watch($('#roi'), 'roi');
   addEventListener('scroll', onScroll, { passive: true }); addEventListener('resize', onScroll); onScroll();
 
   /* ---------- pointer effects (desktop) ---------- */
   if (fine && !reduce) {
     const cur = $('.cursor');
-    let x = innerWidth / 2, y = innerHeight / 2, cx = x, cy = y;
-    addEventListener('mousemove', e => { x = e.clientX; y = e.clientY; cur.classList.add('on'); }, { passive: true });
-    const loop = () => { cx += (x - cx) * 0.22; cy += (y - cy) * 0.22; cur.style.transform = `translate(${cx}px,${cy}px)`; requestAnimationFrame(loop); };
-    loop();
+    let x = innerWidth / 2, y = innerHeight / 2, cx = x, cy = y, moving = true;
+    // la boucle s'arrête quand le curseur a rejoint la souris (écart sous 0,1 px), et repart au mouvement suivant
+    const loop = () => {
+      cx += (x - cx) * 0.22; cy += (y - cy) * 0.22;
+      const done = Math.abs(x - cx) < 0.1 && Math.abs(y - cy) < 0.1, tx = cx, ty = cy;
+      return () => { cur.style.transform = `translate(${tx}px,${ty}px)`; if (done) moving = false; else frame(loop); };
+    };
+    addEventListener('mousemove', e => { x = e.clientX; y = e.clientY; cur.classList.add('on'); if (!moving) { moving = true; frame(loop); } }, { passive: true });
+    frame(loop);
     $$('a,button').forEach(el => { el.addEventListener('mouseenter', () => cur.classList.add('big')); el.addEventListener('mouseleave', () => cur.classList.remove('big')); });
     $$('.magnetic').forEach(el => {
-      el.addEventListener('mousemove', e => { const r = el.getBoundingClientRect(); el.style.transform = `translate(${(e.clientX - r.left - r.width / 2) * 0.25}px,${(e.clientY - r.top - r.height / 2) * 0.35}px)`; });
-      el.addEventListener('mouseleave', () => { el.style.transform = ''; });
+      // rect lu une fois par survol (dans la phase de lecture de la première image après l'entrée, relu seulement
+      // si la page a défilé), transform écrit dans la phase d'écriture. Le rect est gardé sans décalage et on y
+      // ajoute le dernier décalage écrit, comme l'ancien rect relu à chaque mouvement (qui l'incluait) : même amplitude.
+      let r = null, mx = 0, my = 0, dx = 0, dy = 0, inside = false;
+      const stale = () => { r = null; };
+      const job = () => {
+        if (!inside) return null;
+        if (!r) { const b = el.getBoundingClientRect(); r = { left: b.left - dx, top: b.top - dy, width: b.width, height: b.height }; }
+        dx = (mx - (r.left + dx) - r.width / 2) * 0.25; dy = (my - (r.top + dy) - r.height / 2) * 0.35;
+        const tx = dx, ty = dy;
+        return () => { el.style.transform = `translate(${tx}px,${ty}px)`; };
+      };
+      el.addEventListener('mouseenter', () => { inside = true; dx = dy = 0; r = null; addEventListener('scroll', stale, { passive: true }); });
+      el.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; frame(job); });
+      el.addEventListener('mouseleave', () => { inside = false; jobs.delete(job); r = null; dx = dy = 0; removeEventListener('scroll', stale); el.style.transform = ''; });
     });
   }
 
