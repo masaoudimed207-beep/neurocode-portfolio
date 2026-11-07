@@ -125,13 +125,23 @@
     'open.mail': 'M’écrire', 'open.c1': 'Stage', 'open.c1p': 'Avril à mai 2027 · IA, data ou full-stack · sur site, hybride ou à distance',
     'open.c2': 'Freelance', 'open.c2p': 'Applications web, tableaux de bord, pipelines de données et automatisation pour PME', 'open.c3': 'Délai de réponse', 'open.c3p': 'En général sous 24 heures',
     'footer.top': 'Haut de page ↑',
-    'mq.pin': 'l’outil → où il a servi', 'footer.term': 'Terminal (~)'
+    'mq.pin': 'l’outil → où il a servi',
+    'alt.med-cutout': 'Portrait de Mohamed Messaoudi',
+    'alt.med-about': 'Mohamed Messaoudi regarde son téléphone dans un champ au coucher du soleil',
+    'alt.fuel-hero': 'BFRET Fuel Optimizer sur ordinateur et mobile, stations classées par économie nette',
+    'alt.fuel-choice': 'Vue chauffeur : station choisie et détour réel de 1,7 km',
+    'alt.fuel-fleet': 'Tableau de bord du gestionnaire de flotte avec les économies confirmées',
+    'alt.fuel-map': 'Carte Leaflet avec l’itinéraire passant par la station choisie',
+    'alt.innosoft-review': 'Écran de revue experte de l’assistant d’alertes carburant',
+    'alt.kounach-cart': 'Écran d’encaissement rapide de Kounach avec un panier en dirhams', 'footer.term': 'Terminal (~)'
   };
   const EN = {};
   $$('[data-i18n]').forEach(el => { EN[el.dataset.i18n] = el.innerHTML; });
+  $$('[data-i18n-alt]').forEach(el => { EN[el.dataset.i18nAlt] = el.alt; });
   const setLang = (l) => {
     const dict = l === 'fr' ? FR : EN;
     $$('[data-i18n]').forEach(el => { const v = dict[el.dataset.i18n]; if (v) el.innerHTML = v; });
+    $$('[data-i18n-alt]').forEach(el => { const v = dict[el.dataset.i18nAlt]; if (v) el.alt = v; }); // texte alternatif des images
     root.lang = l;
     $$('a[href*="CV_Mohamed_Messaoudi"]').forEach(a => { a.href = l === 'fr' ? 'assets/CV_Mohamed_Messaoudi.pdf' : 'assets/CV_Mohamed_Messaoudi_EN.pdf'; });
     $$('.lang [data-l]').forEach(s => s.classList.toggle('on', s.dataset.l === l));

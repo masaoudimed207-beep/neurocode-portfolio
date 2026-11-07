@@ -753,3 +753,4 @@ p{margin:0 0 1em}
 .proj.reveal.in:hover{transform:translateY(-6px)}
 @media (max-width:980px){.rv .proj-grid .proj:nth-child(n):not(.in){transform:translateY(30px)}}
 .more{overflow-x:clip}
+picture{display:contents}
